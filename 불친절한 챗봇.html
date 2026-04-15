@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>불친절한 챗봇 — 철원여고</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root {
+  --green:#1a7a4a;--green-l:#e8f5ee;--green-m:#9fd4b8;
+  --purple:#534AB7;--purple-l:#EEEDFE;
+  --gray:#f5f5f2;--gray2:#e8e8e4;--gray3:#999;
+  --red-l:#fdf0f0;--red:#c0392b;
+  --amber-l:#fef8ec;--amber:#b7760a;
+  --text:#1a1a18;--text2:#5a5a56;--text3:#999;
+  --border:rgba(0,0,0,0.09);--surface:#fff;
+  --teal:#0f6e56;--teal-l:#e1f5ee;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#f7f7f4;color:var(--text);min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.hdr-icon{width:34px;height:34px;border-radius:10px;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:17px}
+.hdr-title{font-size:14px;font-weight:700}
+.hdr-sub{font-size:11px;color:var(--text3)}
+
+/* 메인 탭 (프롬프트 전략 / 세특) */
+.main-tabs{background:var(--surface);border-bottom:2px solid var(--border);display:flex}
+.main-tab{flex:1;padding:13px;font-size:13px;font-weight:700;font-family:'Noto Sans KR',sans-serif;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;text-align:center}
+.main-tab.active-a{color:var(--green);border-bottom-color:var(--green)}
+.main-tab.active-b{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* 서브 탭 */
+.sub-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.sub-tabs{display:inline-flex}
+.sub-tab{padding:10px 13px;font-size:12px;font-weight:500;font-family:'Noto Sans KR',sans-serif;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+.sub-tab.on-a{color:var(--green);border-bottom-color:var(--green)}
+.sub-tab.on-b{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* MAIN */
+.main{max-width:740px;margin:0 auto;padding:14px 14px 140px}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:5px}
+.card-title-a{color:var(--green)}
+.card-title-b{color:var(--purple)}
+.card-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* 나쁜예/좋은예 */
+.ex-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.ex-box{border-radius:10px;padding:11px 13px}
+.ex-bad{background:var(--red-l);border:1px solid #f5c6c4}
+.ex-good{background:var(--green-l);border:1px solid var(--green-m)}
+.ex-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.ex-bad .ex-lbl{color:var(--red)}
+.ex-good .ex-lbl{color:var(--green)}
+.ex-txt{font-size:12px;line-height:1.65;color:var(--text)}
+
+/* LEVEL */
+.lvcard{border-radius:10px;padding:12px 14px;border:1.5px solid var(--gray2)}
+.lv-bad{background:#fef9f0;border-color:#fad59a}
+.lv-good{background:var(--green-l);border-color:var(--green-m)}
+.lv-bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:5px}
+.lv-bad .lv-bdg{background:#fad59a;color:#7a4e00}
+.lv-good .lv-bdg{background:var(--green-m);color:#1a5c30}
+.lv-prompt{font-size:12px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:keep-all}
+.lv-reason{font-size:11px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.07);line-height:1.55}
+.lv-nav{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+/* BTN */
+.btn{padding:6px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .15s;color:var(--text)}
+.btn:hover{background:var(--gray)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{opacity:.88}
+.btn-purple{background:var(--purple);color:#fff;border-color:var(--purple)}
+.btn-purple:hover{opacity:.88}
+
+/* TEMPLATE */
+.tmpl-a{background:var(--green-l);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--green);line-height:1.7}
+.tmpl-b{background:var(--purple-l);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--purple);line-height:1.7}
+.tmpl-lbl{font-size:9px;font-weight:700;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+
+/* 체크포인트 */
+.chk-wrap{margin-top:10px}
+.chk-lbl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px}
+.chk-item{display:flex;align-items:flex-start;gap:6px;font-size:12px;margin-bottom:5px;line-height:1.55}
+
+/* CHAT */
+.chat-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.chat-lbl{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px}
+.chat-area{display:flex;flex-direction:column;gap:8px;min-height:60px}
+.msg{display:flex;gap:7px;align-items:flex-start}
+.msg.user{flex-direction:row-reverse}
+.av{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.av-ai{background:var(--green-l);color:var(--green)}
+.av-me{background:var(--purple-l);color:var(--purple)}
+.bubble{max-width:87%;padding:8px 11px;border-radius:10px;font-size:12px;line-height:1.7;word-break:keep-all;white-space:pre-wrap}
+.ai .bubble{background:var(--gray);border:1px solid var(--border)}
+.user .bubble{background:var(--green);color:#fff}
+.fb-wrap{max-width:87%}
+.fb-tip{background:var(--amber-l);border:1px solid #f0d080;border-radius:8px;padding:8px 11px;margin-top:4px;font-size:11px}
+.fb-tip-t{font-weight:700;color:var(--amber);margin-bottom:2px}
+.fb-ok{background:var(--green-l);border:1px solid var(--green-m);border-radius:8px;padding:8px 11px;margin-top:4px;font-size:11px}
+.fb-ok-t{font-weight:700;color:var(--green);margin-bottom:2px}
+.chk-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;margin-top:4px}
+.chk-card-lbl{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.chk-row{display:flex;align-items:flex-start;gap:5px;font-size:11px;margin-bottom:3px;line-height:1.5}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.dot-ok{background:#27a84a}.dot-no{background:#e74c3c}
+
+/* COMBO */
+.combo-card{background:#f8f7ff;border:1px solid #d0cdf5;border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.combo-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+.ctag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--purple-l);color:var(--purple)}
+.combo-p{font-size:12px;line-height:1.75;color:var(--text);white-space:pre-wrap}
+
+/* INPUT */
+.inp-fixed{position:fixed;bottom:0;left:0;right:0;background:rgba(247,247,244,.96);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:9px 14px 16px}
+.inp-row{display:flex;gap:7px;align-items:flex-end;max-width:740px;margin:0 auto}
+.inp-row textarea{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:8px 12px;font-size:13px;font-family:'Noto Sans KR',sans-serif;resize:none;min-height:40px;max-height:100px;line-height:1.6;color:var(--text);background:var(--surface);transition:border-color .15s}
+.inp-row textarea:focus{outline:none;border-color:var(--green)}
+.inp-send{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;height:40px;transition:opacity .15s}
+.inp-send:hover{opacity:.88}.inp-send:disabled{opacity:.4;cursor:not-allowed}
+.inp-meta{max-width:740px;margin:3px auto 0;display:flex;justify-content:space-between;font-size:11px;color:var(--text3)}
+
+/* LOADING */
+.ldots{display:flex;gap:4px;padding:2px 0}
+.ldots span{width:4px;height:4px;border-radius:50%;background:var(--text3);animation:b .8s infinite}
+.ldots span:nth-child(2){animation-delay:.15s}
+.ldots span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.ref{font-size:10px;color:var(--text3);text-align:center;padding:5px 0;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-icon">📝</div>
+    <div>
+      <div class="hdr-title">불친절한 챗봇</div>
+      <div class="hdr-sub">철원여고 현대사회와 윤리 — 인공지능과 인간의 관계</div>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 탭 -->
+<div class="main-tabs">
+  <button class="main-tab active-a" id="mtab-a" onclick="switchMain('a')">💡 프롬프트 전략</button>
+  <button class="main-tab" id="mtab-b" onclick="switchMain('b')">📝 세특·탐구보고서</button>
+</div>
+
+<!-- 서브 탭 -->
+<div class="sub-wrap">
+  <div class="sub-tabs" id="sub-tabs"></div>
+</div>
+
+<div class="main" id="main-area"></div>
+
+<div class="inp-fixed">
+  <div class="inp-row">
+    <textarea id="inp" placeholder="프롬프트를 직접 입력해보세요..." rows="1"
+      onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+    <button class="inp-send" id="sbtn" onclick="sendMsg()">전송</button>
+  </div>
+  <div class="inp-meta">
+    <span id="hint">탭을 선택하세요</span>
+    <span id="cnt">0자</span>
+  </div>
+</div>
+
+<script>
+var _apiKey = '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';
+var mainMode = 'a'; // 'a' = 프롬프트전략, 'b' = 세특
+var curSub = 0;
+var curLv = [0,0,0,0,0,0,0,0];
+var seStep = 0;
+var hist = [];
+var loading = false;
+
+// ── 전략 데이터 ──
+var ST = [
+  { name:'전략 1. 자기소개 전략', desc:'내가 어떤 사람인지, 배경을 먼저 설명하는 전략이에요. AI는 그 정보를 바탕으로 내 수준에 맞는 답변을 제공해요.',
+    bad:'나랑 영어 회화 연습하자.',
+    good:'나는 한국에서만 살아온 고2 학생이야. 영어 독해는 잘하는 편이고 아는 단어도 많은 편인데, 영어로 말을 하려면 바로바로 떠오르지 않아. 내 회화 연습을 도와줬으면 좋겠어. 내가 중간에 단어를 떠올리느라 말이 끊기더라도 오래 기다려 주고 표현을 제안해 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'나랑 영어 회화 연습하자.', r:'나에 대한 정보가 전혀 없어요. AI가 어느 수준인지 모르니 일반적인 회화만 진행됩니다.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'나는 한국에서만 살아온 고2 학생이야. 영어 독해는 잘하는 편이고 아는 단어도 많은 편인데, 영어로 말을 하려면 바로바로 떠오르지 않아. 내 회화 연습을 도와줬으면 좋겠어. 내가 중간에 단어를 떠올리느라 말이 끊기더라도 오래 기다려 주고 표현을 제안해 줘.', r:'학년, 수준, 어려운 점, 원하는 방식까지 모두 담겼어요!'}
+    ],
+    tmpl:'나는 [학년/상황]이고, [현재 이해 수준]이야. [원하는 도움]을 해줘.',
+    sys1:'You are a terse, unhelpful AI. Answer only what is literally asked, in 1-2 sentences max. No tips, no encouragement, no follow-up questions. Cold and brief.',
+    sys3:'You are a warm, highly capable AI. The user has given rich context. Use ALL of it to give a deeply personalized, thorough response. Be encouraging and specific.',
+    fbs:[{ok:false,t:'자기소개가 없어요',b:'학년, 현재 이해 수준을 알려주면 훨씬 나은 답변을 받을 수 있어요.'},{ok:true,t:'훌륭한 자기소개!',b:'학년·어려운 점·원하는 방식까지 모두 담겼어요!'}],
+    chks0:[{ok:false,lbl:'자기소개 포함',r:'학년, 현재 상황을 알려주세요'},{ok:false,lbl:'이해 수준 제시',r:'어디까지 알고 있는지 말해주세요'},{ok:false,lbl:'충분한 길이',r:'더 구체적으로 써보세요'}],
+    chks3:[{ok:true,lbl:'자기소개 포함'},{ok:true,lbl:'이해 수준 제시'},{ok:true,lbl:'원하는 방식 명시'},{ok:true,lbl:'충분한 길이'}]
+  },
+  { name:'전략 2. 목적 설명 전략', desc:'요청하는 이유와 최종 목적을 함께 설명하는 전략이에요. AI가 목적을 알면 그에 맞는 방식으로 답변합니다.',
+    bad:'AI의 장단점을 알려 줘.',
+    good:'다음 주 사회 수업 시간에 학교 수업 시간에 AI 도구를 활용해야 하는가를 주제로 찬반 토론을 한다. 나는 반대하는 입장인데, 토론을 위해서 찬성 입장과 반대 입장의 근거를 다양하게 검토하고 싶어. 정리 부탁해.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'AI의 장단점을 알려 줘.', r:'왜 알고 싶은지, 어떤 상황인지 목적이 없어요. AI가 일반적인 내용만 나열합니다.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'다음 주 사회 수업 시간에 학교 수업 시간에 AI 도구를 활용해야 하는가를 주제로 찬반 토론을 한다. 나는 반대하는 입장인데, 토론을 위해서 찬성 입장과 반대 입장의 근거를 다양하게 검토하고 싶어. 정리 부탁해.', r:'목적, 상황, 내 입장, 원하는 내용까지 명확해요!'}
+    ],
+    tmpl:'[목적/상황]을 위해 [구체적 내용]을 [원하는 형태]로 도와줘.',
+    sys1:'You are a terse AI. Answer briefly in 2-3 sentences. No elaboration.',
+    sys3:'You are a helpful AI. Use the stated purpose and context to give a well-organized, thorough response tailored to the user\'s goal.',
+    fbs:[{ok:false,t:'목적이 없어요',b:'왜 필요한지, 어떤 상황인지 알려주세요.'},{ok:true,t:'목적이 명확해요!',b:'목적, 상황, 원하는 내용까지 완벽합니다!'}],
+    chks0:[{ok:false,lbl:'목적/이유 포함',r:'왜 필요한지 알려주세요'},{ok:false,lbl:'충분한 길이',r:'더 구체적으로 써보세요'}],
+    chks3:[{ok:true,lbl:'목적/이유 포함'},{ok:true,lbl:'상황 설명'},{ok:true,lbl:'원하는 내용 명시'}]
+  },
+  { name:'전략 3. 역할 부여 전략', desc:'AI에게 특정 역할을 부여하는 전략이에요. 성격·스타일까지 지정하면 그 캐릭터에 맞는 어휘와 방식으로 답변합니다.',
+    bad:'내가 쓴 이 글에 대한 피드백을 부탁해.',
+    good:'너는 비판적인 고등학교 국어 선생님이 되어서, 내가 쓴 글을 날카롭게 피드백해 줘. 고쳐야 할 부분들은 이유와 함께 대안도 제시해 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'내가 쓴 이 글에 대한 피드백을 부탁해.', r:'AI가 어떤 기준으로 피드백해야 할지 모릅니다.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'너는 비판적인 고등학교 국어 선생님이 되어서, 내가 쓴 글을 날카롭게 피드백해 줘. 고쳐야 할 부분들은 이유와 함께 대안도 제시해 줘.', r:'역할, 방식, 요청 내용이 구체적이에요!'}
+    ],
+    tmpl:'너는 [구체적 역할/성격]이 되어서, [요청 내용]을 [방식]으로 해줘.',
+    sys1:'You are a generic AI. Give a plain, brief answer without any specific role or style.',
+    sys3:'You are the exact role the user assigned. Fully embody that character\'s style, vocabulary, and approach. Stay in character throughout.',
+    fbs:[{ok:false,t:'역할이 없어요',b:'AI에게 역할을 부여하면 설명 방식이 달라져요.'},{ok:true,t:'완벽한 역할 부여!',b:'역할, 방식, 목표가 모두 명확해요!'}],
+    chks0:[{ok:false,lbl:'역할 부여',r:'AI에게 특정 역할을 지정해주세요'},{ok:false,lbl:'스타일/방식 지정',r:'어떤 방식으로 답해달라는지 지정해보세요'}],
+    chks3:[{ok:true,lbl:'역할 부여'},{ok:true,lbl:'스타일/방식 지정'},{ok:true,lbl:'요청 내용 명확'}]
+  },
+  { name:'전략 4. 분량·난이도 전략', desc:'답변의 길이와 난이도를 구체적으로 명시하는 전략이에요. 쉽게보다는 고등학생 수준으로, 짧게보다는 세 문장으로처럼 명확하게 지정할수록 효과적이에요.',
+    bad:'기후 변화의 원인을 알려 줘.',
+    good:'기후 변화의 다양한 원인에 대해 각 원인별로 한 문단씩, 세네 문장 정도의 길이로 설명해 줘. 키워드는 굵은 글씨로 지정해서 가독성을 높여 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'기후 변화의 원인을 알려 줘.', r:'얼마나 길게, 어느 수준으로 설명해달라는 건지 없어요.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'기후 변화의 다양한 원인에 대해 각 원인별로 한 문단씩, 세네 문장 정도의 길이로 설명해 줘. 키워드는 굵은 글씨로 지정해서 가독성을 높여 줘.', r:'항목, 분량, 형식까지 구체적이에요!'}
+    ],
+    tmpl:'[대상 수준]이 이해할 수 있도록, [항목 수]를 [분량]으로 설명해줘.',
+    sys1:'You are a brief AI. Give a short generic answer, 2-3 sentences only.',
+    sys3:'You are a helpful AI. Follow the user\'s exact specifications for length, difficulty level, format, and vocabulary. Be precise and thorough.',
+    fbs:[{ok:false,t:'분량·난이도 지정이 없어요',b:'원하는 분량과 수준을 구체적으로 지정해보세요.'},{ok:true,t:'완벽한 분량·난이도 지정!',b:'분량, 수준, 형식까지 명확해요!'}],
+    chks0:[{ok:false,lbl:'분량 지정',r:'몇 문장? 몇 항목? 구체적인 양을 지정해주세요'},{ok:false,lbl:'난이도 지정',r:'어떤 수준으로 설명해달라고 말해주세요'}],
+    chks3:[{ok:true,lbl:'분량 지정'},{ok:true,lbl:'난이도/수준 지정'},{ok:true,lbl:'형식 지정'}]
+  },
+  { name:'전략 5. 형식 요청 전략', desc:'AI가 제공할 답변의 형식을 구체적으로 지정하는 전략이에요. 표, 번호 목록, 단계별 구조 등을 요청하면 훨씬 효과적이에요.',
+    bad:'시장경제와 계획경제에 대해 알려 줘.',
+    good:'시장경제와 계획경제의 다양한 특징들을 표를 그려 비교 분석해 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'시장경제와 계획경제에 대해 알려 줘.', r:'어떤 형식으로 알려달라는 건지 없어요. 긴 단락으로 쭉 써버릴 수 있어요.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'시장경제와 계획경제의 다양한 특징들을 표를 그려 비교 분석해 줘.', r:'형식(표)을 명확하게 지정했어요. 한눈에 비교할 수 있어요!'}
+    ],
+    tmpl:'[내용]을 [표/목록/단계별] 형식으로, [항목 지정]해서 정리해줘.',
+    sys1:'You are a brief AI. Answer in plain paragraph form, no structure or formatting.',
+    sys3:'You are a helpful AI. Follow the user\'s requested format exactly (table, list, steps, etc.). Structure your answer clearly.',
+    fbs:[{ok:false,t:'형식이 없어요',b:'표, 목록, 단계 등 원하는 형식을 직접 지정해보세요.'},{ok:true,t:'완벽한 형식 요청!',b:'형식이 명확해요. 딱 맞는 형태로 정리돼요!'}],
+    chks0:[{ok:false,lbl:'형식 지정',r:'표, 목록, 단계 등 원하는 형식을 지정해주세요'},{ok:false,lbl:'항목 지정',r:'어떤 항목이 들어가면 좋은지 지정해주세요'}],
+    chks3:[{ok:true,lbl:'형식 지정'},{ok:true,lbl:'항목 지정'}]
+  },
+  { name:'전략 6. 사고 흐름 유도 전략', desc:'답을 바로 요청하지 않고, 사고의 흐름을 단계별로 따라가며 설명해달라고 요청하는 전략이에요.',
+    bad:'이 시의 주제를 알려 줘.',
+    good:'이 시에 쓰인 표현 방식과 시어의 특징을 살펴보고, 그것들이 어떤 감정을 전달하는지 생각한 다음, 그걸 토대로 주제를 정리해 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'이 시의 주제를 알려 줘.', r:'사고 과정 없이 결론만 요청했어요.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'이 시에 쓰인 표현 방식과 시어의 특징을 살펴보고, 그것들이 어떤 감정을 전달하는지 생각한 다음, 그걸 토대로 주제를 정리해 줘.', r:'분석-감정-주제 도출의 사고 흐름을 설계했어요!'}
+    ],
+    tmpl:'먼저 [첫 단계]를 하고, [두 번째 단계]를 거쳐서, [최종 결론]을 내려줘.',
+    sys1:'You are a brief AI. Just give the final answer directly, no reasoning or steps.',
+    sys3:'You are a helpful AI. Follow the exact thinking steps the user outlined. Show your reasoning at each stage before giving the conclusion.',
+    fbs:[{ok:false,t:'사고 흐름이 없어요',b:'단계별 사고 흐름을 직접 설계해보세요.'},{ok:true,t:'완벽한 사고 흐름 설계!',b:'단계가 명확해요. AI가 논리적으로 답해요!'}],
+    chks0:[{ok:false,lbl:'사고 단계 설계',r:'단계를 직접 설계해보세요'},{ok:false,lbl:'논리적 흐름',r:'분석-비교-결론 같은 흐름을 담아보세요'}],
+    chks3:[{ok:true,lbl:'사고 단계 설계'},{ok:true,lbl:'논리적 흐름'},{ok:true,lbl:'충분한 구체성'}]
+  },
+  { name:'전략 7. 질문 유도형 전략', desc:'AI를 정답을 알려주는 존재가 아니라, 스스로 생각할 수 있도록 질문을 던져주는 선생님으로 활용하는 전략이에요.',
+    bad:'이 물리 문제를 풀어 줘.',
+    good:'이 물리 문제를 스스로 풀어 보고 싶어. 이 문제를 풀기 위해 꼭 알아야 할 개념이나 기본 공식 등을 질문을 통해 하나하나 짚어 줘. 질문은 한 번에 하나씩만 해주고, 내가 대답하면 피드백해 준 다음 다음 질문으로 넘어가 줘.',
+    levels:[
+      {lbl:'나쁜 예', cls:'lv-bad', p:'이 물리 문제를 풀어 줘.', r:'AI가 정답을 바로 알려줘요. 스스로 생각하는 과정이 없어요.'},
+      {lbl:'좋은 예', cls:'lv-good', p:'이 물리 문제를 스스로 풀어 보고 싶어. 이 문제를 풀기 위해 꼭 알아야 할 개념이나 기본 공식 등을 질문을 통해 하나하나 짚어 줘. 질문은 한 번에 하나씩만 해주고, 내가 대답하면 피드백해 준 다음 다음 질문으로 넘어가 줘.', r:'질문 방식, 흐름, 목적까지 설계했어요!'}
+    ],
+    tmpl:'[주제]를 스스로 이해하고 싶어. 질문을 하나씩 던져줘. 내가 답하면 피드백 주고 다음으로 넘어가줘.',
+    sys1:'You are a brief AI. Just give the answer directly. No questions, no guiding.',
+    sys3:'You are a Socratic tutor. Guide the user with one question at a time. After they answer, give feedback, then move to the next question. Never give the answer directly.',
+    fbs:[{ok:false,t:'정답을 바로 요청했어요',b:'AI를 선생님으로 삼아서 질문을 받아보는 방식을 써보세요.'},{ok:true,t:'완벽한 질문 유도형!',b:'유도 방식과 피드백 방식까지 설계됐어요!'}],
+    chks0:[{ok:false,lbl:'질문 유도 요청',r:'AI에게 질문으로 안내해달라고 말해주세요'},{ok:false,lbl:'대화 흐름 설계',r:'질문-답-피드백-다음 질문 흐름을 지정해보세요'}],
+    chks3:[{ok:true,lbl:'질문 유도 요청'},{ok:true,lbl:'대화 흐름 설계'},{ok:true,lbl:'목적 명확'}]
+  },
+  { name:'전략 조합', isCombo:true }
+];
+
+var COMBOS = [
+  {tags:['①자기소개','③역할부여','⑦질문유도'], p:'①나는 고2이고 영어 서술형 시험이 어렵게 느껴져. 문법은 아는데 막상 문장으로 쓰려면 어색해. ③너는 내 글을 도와주는 영어 쓰기 멘토야. 내가 우리 가족 소개를 한두 문장 써볼 테니까, ⑦부족한 점을 물어봐 주고, 더 구체적으로 쓰도록 질문해줘. 내가 대답하면 그걸 반영해서 다음 문장을 이끌어 줘.'},
+  {tags:['①자기소개','②목적설명','⑥사고흐름'], p:'①나는 고1이고, ②수학 서술형 시험을 준비해야 하는데, 문제는 풀 수 있지만 풀이 과정을 서술형으로 쓰는 게 어려워. 내가 문제를 올리면 ⑥문제 파악 - 개념 적용 - 계산 과정 - 결론 정리 이런 식으로 단계적으로 사고 흐름을 따라가며 설명하는 연습을 할 수 있게 도와줘.'},
+  {tags:['②목적설명','③역할부여','⑤형식요청','④분량·난이도'], p:'나는 ②역사 수행평가로 근대 개항 이후 조선의 변화에 대해 포스터를 만들려고 해. ③너는 일타 역사 강사가 되어서, ⑤[연도|사건명|내용 요약|의미] 형식으로 조선이 개항 후 어떤 변화를 겪었는지 4~5개 사건만 정리해 줘. ④너무 어려운 용어는 피해서 써 줘.'}
+];
+
+// ── 세특 단계 데이터 ──
+var SE = [
+  { num:'1단계', icon:'🔍', title:'주제 선정',
+    desc:'막연하게 주제를 정하지 않고, AI와 대화하며 내 관심사·수업 내용·진로를 연결해 구체적인 탐구 주제를 찾아요. AI에게 주제를 통째로 받지 말고, 질문을 받으면서 스스로 좁혀가는 게 핵심이에요.',
+    checks:[
+      {ok:true,  t:'내 학년과 수업 과목·단원 언급'},
+      {ok:true,  t:'나의 관심사 또는 진로 포함'},
+      {ok:false, t:'AI에게 주제를 통째로 받아쓰기 요청 — 하면 안 돼요!'},
+      {ok:true,  t:'AI가 질문으로 이끌어달라는 요청'},
+      {ok:true,  t:'한 번에 질문 하나씩 요청'}
+    ],
+    tmpl:'나는 [학년]이고 [과목]에서 [단원/주제]를 배웠어. 나의 관심사는 [관심사]이고, [진로]를 꿈꾸고 있어. 이것들을 연결해서 탐구 주제를 함께 찾아줄 수 있어? 답을 바로 주지 말고, 한 번에 질문 하나씩 던져줘. 내가 대답하면 주제를 점점 좁혀가줘.',
+    sys:'You are a research topic mentor for Korean high school students. When the student sends a prompt, first respond like a real mentor (2-3 lines reacting to their content). Then provide a checklist feedback in Korean:\n\n📋 프롬프트 체크\n✅/❌ 학년·과목·단원 언급\n✅/❌ 관심사·진로 포함\n✅/❌ AI에게 주제를 통째로 받지 않음\n✅/❌ 질문으로 이끌어달라는 요청\n✅/❌ 한 번에 하나씩 요청\n\n💡 보완하면 더 좋아요: (1-2 specific suggestions)\n\nIf the prompt is good, ask the first guiding question to help them narrow their topic.'
+  },
+  { num:'2단계', icon:'📚', title:'자료 조사',
+    desc:'주제를 정했더라도 신뢰할 자료를 찾고 해석하고 정리하는 게 막막할 수 있어요. AI에게 자료를 대신 찾아달라고 하면 안 되고, 내가 직접 찾기 위한 키워드·검색 방법·출처를 도움받는 거예요.\n① 조사 계획(사례 분석 → 문제점 분석 → 정책 분석)을 먼저 세우고 피드백 받기\n② 검색 키워드와 신뢰도 높은 자료 찾는 방법 안내받기 (막혔을 때 새로운 키워드·사이트도 요청 가능)\n③ 찾은 자료는 직접 읽고 내 언어로 바꾸기 — 이 과정이 탐구 역량으로 평가돼요\n④ 복잡한 통계 데이터는 AI로 시각화 가능!',
+    checks:[
+      {ok:true,  t:'탐구 주제를 구체적으로 제시'},
+      {ok:false, t:'AI에게 자료 대신 찾아달라는 요청 — 하면 안 돼요!'},
+      {ok:true,  t:'검색 키워드·자료 유형·구체적 검색 방법 요청'},
+      {ok:true,  t:'막혔을 때 새로운 키워드·사이트 안내 요청'},
+      {ok:true,  t:'찾은 자료를 직접 읽고 내 언어로 정리할 것'}
+    ],
+    tmpl:'내 탐구 주제는 "[주제]"야. 자료를 직접 찾으려고 하는데 ① 이 주제에 맞는 검색 키워드를 추천해줘. ② 신뢰할 수 있는 자료 유형과 찾을 수 있는 사이트도 알려줘. ③ 구글에 바로 넣을 수 있는 검색어 3개도 만들어줘.',
+    sys:'You are a research methodology mentor for Korean high school students. When the student sends a prompt, first respond like a real mentor (2-3 lines). Then provide checklist feedback in Korean:\n\n📋 프롬프트 체크\n✅/❌ 탐구 주제 구체적 제시\n✅/❌ 자료를 직접 찾기 위한 요청 (AI에게 대신 시키지 않음)\n✅/❌ 검색 키워드·출처·검색어 요청\n\n💡 보완하면 더 좋아요: (specific suggestions)\n\nIf the prompt is good, provide the keywords, source types, and search queries they need.'
+  },
+  { num:'3단계', icon:'✏️', title:'초안 작성',
+    desc:'AI가 보고서를 대신 써주는 게 아니라, 내가 쓴 초안의 구조·논리·표현을 다듬는 데 도움받는 거예요. 서론-본론-결론 구조가 기본이고, 한 번에 모두 맡기지 않고 한 부분씩 점검받아요.',
+    checks:[
+      {ok:true,  t:'내가 직접 쓴 내용이나 아이디어 포함'},
+      {ok:false, t:'AI에게 처음부터 써달라는 요청 — 하면 안 돼요!'},
+      {ok:true,  t:'서론/본론/결론 중 어느 부분인지 명시'},
+      {ok:true,  t:'원하는 도움의 종류 구체적 지정 (구조/표현/논리 등)'},
+      {ok:true,  t:'AI에게 고쳐달라 말고 어떻게 고치면 좋을지 알려달라고 요청'}
+    ],
+    tmpl:'내 탐구보고서 [서론/본론/결론] 초안이야:\n"[내가 쓴 내용]"\n\n이 부분에서 [논리 흐름 / 표현 어색함 / 빠진 내용] 중 하나만 점검해줘. 직접 고쳐주지 말고, 어떤 부분을 어떻게 보완하면 좋을지 이유와 함께 알려줘.',
+    sys:'You are a writing mentor for Korean high school research reports. When the student sends a prompt, respond like a real mentor (2-3 lines). Then provide checklist feedback in Korean:\n\n📋 프롬프트 체크\n✅/❌ 내가 쓴 내용·아이디어 포함\n✅/❌ AI에게 대신 써달라는 요청 아님\n✅/❌ 보고서 어느 부분인지 명시\n✅/❌ 원하는 도움의 종류 구체적\n✅/❌ 고쳐달라가 아닌 방향을 알려달라는 요청\n\n💡 보완하면 더 좋아요: (specific suggestions)\n\nIf the prompt is well-written, provide the actual feedback on their draft.'
+  },
+  { num:'4단계', icon:'🔎', title:'피드백 받기',
+    desc:'완성된 보고서를 한꺼번에 검토 요청하면 피드백이 너무 두루뭉술해요. 구조/자료출처/표현/결론 등 항목을 나눠서 요청하는 게 훨씬 효과적이에요. 구조, 자료출처, 표현, 논리, 결론, 독창성 등 항목별로 나눠서 하나씩 점검하는 게 효과적이에요.',
+    checks:[
+      {ok:true,  t:'검토 받을 항목을 구체적으로 지정 (구조/표현/자료출처/결론 등)'},
+      {ok:true,  t:'한 번에 한 항목씩만 요청'},
+      {ok:false, t:'AI에게 대신 고쳐달라는 요청 — 하면 안 돼요!'},
+      {ok:true,  t:'왜 그렇게 고쳐야 하는지 이유도 요청'},
+      {ok:true,  t:'최종 제출 전 스스로 먼저 검토했는지 확인'}
+    ],
+    tmpl:'내 탐구보고서 [특정 부분]이야:\n"[내용]"\n\n[구조와 흐름 / 자료 출처 표시 / 표현과 문장 / 결론의 설득력] 중 하나만 점검해줘. 직접 고쳐주지 말고, 어떤 부분을 어떻게 수정하면 좋을지 이유와 함께 알려줘.',
+    sys:'You are a feedback mentor for Korean high school research reports. When the student sends a prompt, respond like a real mentor (2-3 lines). Then provide checklist feedback in Korean:\n\n📋 프롬프트 체크\n✅/❌ 검토 항목 구체적 지정\n✅/❌ 한 번에 한 항목 요청\n✅/❌ AI에게 대신 고쳐달라는 요청 아님\n✅/❌ 이유·근거 함께 요청\n\n💡 보완하면 더 좋아요: (specific suggestions)\n\nIf the prompt is good, provide the actual feedback they requested.'
+  }
+];
+
+// ── 초기화 ──
+function init() {
+  switchMain('a');
+}
+
+function switchMain(m) {
+  mainMode = m;
+  curSub = 0;
+  hist = [];
+  document.getElementById('mtab-a').className = 'main-tab' + (m==='a' ? ' active-a' : '');
+  document.getElementById('mtab-b').className = 'main-tab' + (m==='b' ? ' active-b' : '');
+  buildSubTabs();
+  render();
+}
+
+function buildSubTabs() {
+  var el = document.getElementById('sub-tabs');
+  var html = '';
+  if (mainMode === 'a') {
+    ST.forEach(function(s, i) {
+      html += '<button class="sub-tab' + (i===curSub?' on-a':'') + '" onclick="selSub('+i+')">' + (s.isCombo ? '🔀 전략 조합' : '전략'+(i+1)+'. '+s.name.replace('전략 '+(i+1)+'. ','').split(' ')[0]) + '</button>';
+    });
+  } else {
+    SE.forEach(function(s, i) {
+      html += '<button class="sub-tab' + (i===seStep?' on-b':'') + '" onclick="selSe('+i+')">'+s.icon+' '+s.num+'</button>';
+    });
+  }
+  el.innerHTML = html;
+}
+
+function selSub(i) {
+  curSub = i;
+  curLv[i] = curLv[i] || 0;
+  hist = [];
+  buildSubTabs();
+  render();
+  document.getElementById('inp').value = '';
+  document.getElementById('cnt').textContent = '0자';
+}
+
+function selSe(i) {
+  seStep = i;
+  hist = [];
+  buildSubTabs();
+  render();
+  document.getElementById('inp').value = '';
+  document.getElementById('cnt').textContent = '0자';
+}
+
+function render() {
+  var main = document.getElementById('main-area');
+  var hint = document.getElementById('hint');
+  if (mainMode === 'a') {
+    hint.textContent = '나쁜 예 → 좋은 예 눌러보고 직접 입력해보세요!';
+    renderStrategy(main);
+  } else {
+    hint.textContent = '체크포인트를 확인하고 직접 프롬프트를 써보세요!';
+    renderSe(main);
+  }
+}
+
+function renderStrategy(main) {
+  var s = ST[curSub];
+  var html = '';
+  if (s.isCombo) {
+    html += '<div class="card"><div class="card-title card-title-a">전략 조합 예시</div>';
+    html += '<div class="card-desc">여러 전략을 조합하면 훨씬 효과적인 프롬프트가 만들어져요!</div></div>';
+    COMBOS.forEach(function(c) {
+      html += '<div class="combo-card"><div class="combo-tags">';
+      c.tags.forEach(function(t){ html += '<span class="ctag">'+t+'</span>'; });
+      html += '</div><div class="combo-p">'+esc(c.p)+'</div>';
+      html += '<button class="btn btn-green" style="margin-top:8px;font-size:11px" onclick="applyInp(\''+c.p.replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')+'\')">입력창에 넣기</button>';
+      html += '</div>';
+    });
+  } else {
+    html += '<div class="card"><div class="card-title card-title-a">'+esc(s.name)+'</div>';
+    html += '<div class="card-desc">'+esc(s.desc).replace(/\n/g,'<br>')+'</div>';
+    html += '<div class="ex-row">';
+    html += '<div class="ex-box ex-bad"><div class="ex-lbl">나쁜 예</div><div class="ex-txt">'+esc(s.bad)+'</div></div>';
+    html += '<div class="ex-box ex-good"><div class="ex-lbl">좋은 예</div><div class="ex-txt">'+esc(s.good)+'</div></div>';
+    html += '</div></div>';
+    var lv = curLv[curSub] || 0;
+    var ldata = s.levels[lv];
+    html += '<div class="card"><div class="card-title card-title-a" style="font-size:12px;color:var(--text2)">직접 비교해보세요</div>';
+    html += '<div class="lvcard '+ldata.cls+'"><div class="lv-bdg">'+ldata.lbl+'</div>';
+    html += '<div class="lv-prompt">'+esc(ldata.p)+'</div>';
+    html += '<div class="lv-reason">'+esc(ldata.r)+'</div></div>';
+    html += '<div class="lv-nav">';
+    if (lv>0) html += '<button class="btn" onclick="chLv(-1)">← 나쁜 예</button>';
+    if (lv<1) html += '<button class="btn btn-green" onclick="chLv(1)">좋은 예 →</button>';
+    html += '<button class="btn" onclick="applyInp(\''+ldata.p.replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')+'\')">입력창에 넣기</button>';
+    html += '</div></div>';
+    html += '<div class="card"><div class="card-title card-title-a" style="font-size:11px;color:var(--text2)">템플릿</div>';
+    html += '<div class="tmpl-a"><div class="tmpl-lbl">템플릿</div>'+esc(s.tmpl)+'</div></div>';
+  }
+  html += chatSec();
+  main.innerHTML = html;
+  renderChat();
+}
+
+function renderSe(main) {
+  var s = SE[seStep];
+  var html = '';
+  html += '<div class="card"><div class="card-title card-title-b">'+s.icon+' '+s.num+': '+s.title+'</div>';
+  html += '<div class="card-desc">'+esc(s.desc).replace(/\n/g,'<br>')+'</div>';
+  html += '<div class="chk-wrap"><div class="chk-lbl">프롬프트에 꼭 담아야 할 것들</div>';
+  s.checks.forEach(function(c) {
+    html += '<div class="chk-item"><span style="flex-shrink:0;color:'+(c.ok?'#1a7a4a':'#e74c3c')+'">'+(c.ok?'✅':'❌')+'</span><span>'+esc(c.t)+'</span></div>';
+  });
+  html += '</div>';
+  html += '<div style="margin-top:12px"><div class="tmpl-lbl" style="color:var(--purple);margin-bottom:5px">템플릿</div>';
+  html += '<div class="tmpl-b">'+esc(s.tmpl)+'</div>';
+  html += '<button class="btn btn-purple" style="margin-top:8px;font-size:11px" onclick="applyInp(\''+s.tmpl.replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/\n/g,' ')+'\')">템플릿 입력창에 넣기</button>';
+  html += '</div></div>';
+  html += chatSec();
+  main.innerHTML = html;
+  renderChat();
+}
+
+function chatSec() {
+  var c = mainMode==='a' ? 'var(--green)' : 'var(--purple)';
+  return '<div class="chat-sec"><div class="chat-lbl" style="color:'+c+'">실습 — 직접 입력해보세요</div><div class="chat-area" id="ca"></div></div><div class="ref">참고: Long &amp; Magerko (2020) AI Literacy Framework · Bozkurt (2024) 3wAI Framework</div>';
+}
+
+function chLv(d) {
+  curLv[curSub] = Math.max(0, Math.min(1, (curLv[curSub]||0)+d));
+  render();
+}
+
+function applyInp(t) {
+  // HTML 엔티티 디코딩 (onclick에서 넘어온 &quot; 등 처리)
+  var txt = t.replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'");
+  document.getElementById('inp').value = txt;
+  document.getElementById('cnt').textContent = txt.length+'자';
+  resize(document.getElementById('inp'));
+  document.getElementById('inp').focus();
+}
+
+// ── 프롬프트 분석 (전략 탭용) ──
+function isGoodPrompt(t) {
+  if (curSub >= ST.length || ST[curSub].isCombo) return t.length >= 80;
+  if (curSub===0) return (t.includes('고') || t.includes('학생') || t.includes('나는')) && t.length>40;
+  if (curSub===1) return (t.includes('위해')||t.includes('준비')||t.includes('토론')||t.includes('수업')) && t.length>40;
+  if (curSub===2) return t.includes('너는')||t.includes('되어')||t.includes('역할')||t.includes('선생님');
+  if (curSub===3) return (t.includes('문장')||t.includes('수준')||t.includes('문단')) && t.length>30;
+  if (curSub===4) return t.includes('표')||t.includes('목록')||t.includes('형식')||t.includes('단계');
+  if (curSub===5) return t.includes('먼저')||t.includes('다음')||t.includes('단계')||t.includes('→');
+  if (curSub===6) return t.includes('질문')||t.includes('하나씩')||t.includes('스스로');
+  return t.length > 50;
+}
+
+function buildFb(text, good) {
+  var s = ST[curSub];
+  if (!s || s.isCombo) return '';
+  var fb = good ? s.fbs[1] : s.fbs[0];
+  var chks = good ? s.chks3 : s.chks0;
+  var html = '<div class="fb-wrap">';
+  if (good) {
+    html += '<div class="fb-ok"><div class="fb-ok-t">'+esc(fb.t)+'</div><div style="font-size:11px;color:#1a4a2e;line-height:1.55">'+esc(fb.b)+'</div></div>';
+  } else {
+    html += '<div class="fb-tip"><div class="fb-tip-t">'+esc(fb.t)+'</div><div style="font-size:11px;color:#5a3e00;line-height:1.55">'+esc(fb.b)+'</div></div>';
+  }
+  html += '<div class="chk-card"><div class="chk-card-lbl">프롬프트 체크</div>';
+  chks.forEach(function(c) {
+    html += '<div class="chk-row"><div class="dot '+(c.ok?'dot-ok':'dot-no')+'"></div>';
+    html += '<div style="color:var(--'+(c.ok?'text':'text3')+')">'+esc(c.lbl)+(c.ok?' ✓':'');
+    if(!c.ok&&c.r) html += '<br><span style="font-size:9px;color:var(--text3)">→ '+esc(c.r)+'</span>';
+    html += '</div></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// ── 채팅 렌더 ──
+function renderChat() {
+  var ca = document.getElementById('ca'); if(!ca) return;
+  ca.innerHTML = '';
+  hist.forEach(function(m) {
+    var d = document.createElement('div');
+    d.className = 'msg ' + m.role;
+    if (m.role==='ai') {
+      d.innerHTML = '<div class="av av-ai">AI</div><div><div class="bubble">'+esc(m.text).replace(/\n/g,'<br>')+'</div>'+(m.fb||'')+'</div>';
+    } else {
+      d.innerHTML = '<div class="av av-me">나</div><div class="bubble">'+esc(m.text).replace(/\n/g,'<br>')+'</div>';
+    }
+    ca.appendChild(d);
+  });
+  ca.scrollTop = ca.scrollHeight;
+}
+
+// ── 전송 ──
+async function sendMsg() {
+  if (loading) return;
+  var inp = document.getElementById('inp');
+  var text = inp.value.trim(); if (!text) return;
+  loading = true;
+  document.getElementById('sbtn').disabled = true;
+
+  // #ca 없으면 먼저 렌더링해서 생성
+  if (!document.getElementById('ca')) render();
+
+  var ca = document.getElementById('ca');
+  if (!ca) { loading=false; document.getElementById('sbtn').disabled=false; return; }
+
+  hist.push({role:'user', text:text});
+  renderChat();
+  inp.value = ''; resize(inp);
+  document.getElementById('cnt').textContent = '0자';
+  var ld = document.createElement('div');
+  ld.className='msg ai'; ld.id='ld';
+  ld.innerHTML='<div class="av av-ai">AI</div><div><div class="bubble"><div class="ldots"><span></span><span></span><span></span></div></div></div>';
+  ca.appendChild(ld); ca.scrollTop=ca.scrollHeight;
+
+  var resp, fb='';
+  if (mainMode === 'b') {
+    resp = await callAPI(text, SE[seStep].sys);
+  } else {
+    var good = isGoodPrompt(text);
+    var s = ST[curSub];
+    var sys = s && !s.isCombo ? (good ? s.sys3 : s.sys1) : 'You are a helpful AI assistant. Answer the user\'s question thoroughly.';
+    resp = await callAPI(text, sys);
+    fb = buildFb(text, good);
+  }
+
+  var el = document.getElementById('ld'); if(el) el.remove();
+  hist.push({role:'ai', text:resp, fb:fb});
+  renderChat();
+  loading = false;
+  document.getElementById('sbtn').disabled = false;
+}
+
+async function callAPI(userText, sys) {
+  try {
+    var res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+_apiKey},
+      body: JSON.stringify({
+  model: 'gpt-3.5-turbo',
+  max_tokens: 1000,
+  temperature: 0.9,
+  messages: [
+    { role:'system', content:sys },
+    { role:'user', content:userText }
+  ]
+})
+    });
+    var data = await res.json();
+    if (data.choices && data.choices[0]) return data.choices[0].message.content;
+    if (data.error) return '⚠️ API 오류: ' + data.error.message;
+    return '응답을 불러오지 못했어요.';
+  } catch(e) { return '연결 오류: '+e.message; }
+}
+
+function onKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function resize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; document.getElementById('cnt').textContent=el.value.length+'자'; }
+function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>
